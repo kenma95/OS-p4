@@ -1,0 +1,4 @@
+STORE xyz.txt 14
+ABCDEFGHIJKLMN
+READ xyz.txt 4 5
+
