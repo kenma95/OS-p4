@@ -41,7 +41,7 @@ def get_thread_id():
     return "[thread" + str(threading.current_thread()) + "] "
 
 
-def store(line_index, c, lines):
+def store(line, c):
     print lines
     command = lines[line_index]
     phrase_list = command.split()
@@ -73,27 +73,26 @@ def store(line_index, c, lines):
 
     f.close()
     # c.send("ACK");
-    print "Sent ACK"
     return next_command_index
 
 
 def session(c, addr):
-    buffer = ''
-    buffer, lines = readlines(buffer, c)
-    skip = -1
+    while 1:
+        line = c.recv(1024)
+        if len(line) == 0:  #nothing receive, connection over
+            break
+        print [thread 134558720] Rcvd: STORE abc.txt 25842
+        else if line.startswith("STORE "):
+            store(line,c)
+            c.send("ACK")
+        elif line.startswith("DIR"):
+            dir_(c)
+            print "DIR"
+        else:
+            print "ERROR: UNDEFINED COMMAND"
+            break
 
-    while buffer or lines:
-        for i in range(0, len(lines)):
-            if i <= skip:
-                continue
-            elif lines[i].startswith("STORE "):
-                skip = store(i, c, lines)
-            elif lines[i].startswith("DIR"):
-                dir_(c)
-            else:
-                print "ERROR: UNDEFINED COMMAND"
-
-        buffer, lines = readlines(buffer, c)
+        #buffer, lines = readlines(buffer, c)
 
 
     # Disconnect if no more byte recv
@@ -121,13 +120,17 @@ def main():
     print "Listening on port " + str(port)
 
     s.listen(5)
+
     while True:
-        c, addr = s.accept()  # Establish connection with client.
-        print "Received incoming connection from " + str(addr)
-        c.send('Server:Connected successful')
-        # new thread here
-        thread = threading.Thread(target=session, args=(c, addr))
-        thread.start()
+        try:
+            c, addr = s.accept()  # Establish connection with client.
+            print "Received incoming connection from " + str(addr)
+            c.send('Server:Connected successful')
+            # new thread here
+            thread = threading.Thread(target=session, args=(c, addr))
+            thread.start()
+        except KeyboardInterrupt:
+            return
 
 
 if __name__ == '__main__':
