@@ -17,7 +17,7 @@ def read(line,c,disk):
     phrase_list = line.split()
     if len(phrase_list) < 4:
         print get_thread_id() + "Sent: ERROR: WRONG FORMAT"
-        c.send("ERROR: WRONG FORMAT")
+        c.send("ERROR: WRONG FORMAT\n")
     file_name = phrase_list[1]
     file_offset = int(phrase_list[2])
     file_len = int(phrase_list[3])
@@ -31,15 +31,17 @@ def read(line,c,disk):
             print get_thread_id() + "ERROR: INVALID BYTE RANGE"
         f.seek(file_offset,0)
         to_read = f.read(file_len)
-        to_read = "ACK" + str(file_len)+"\n" + to_read
+        to_read = "ACK\n" + str(file_len)+"\n" + to_read +"\n"
         c.send(to_read)
         print get_thread_id() + "Sent: "+to_read
-    #simulation
+        file_id, block_num = disk.read(file_name,file_offset,file_len)
+        print "Sent " + str(file_len) +" bytes (from "+str(block_num) +" '"+file_id+"' blocks) from offset "+str(file_offset)
+
 
 def dir_(c):
     file_list = os.listdir(".storage")
-    to_return = (str(len(file_list)))
-    print get_thread_id() + "Sent " + str(len(file_list)) +"\n"
+    to_return = (str(len(file_list)))+"\n"
+    print get_thread_id() + "Sent " + str(len(file_list))
     if file_list:
         file_list.sort()
         for item in file_list:
@@ -53,15 +55,19 @@ def delete(line,c,disk):
     phrase_list = line.split()
     if len(phrase_list) < 2:
         print get_thread_id() + "ERROR: WRONG FORMAT"
-        c.send("ERROR: WRONG FORMAT")
+        c.send("ERROR: WRONG FORMAT\n")
     file_name =  phrase_list[1]
     if not os.path.exists(".storage/" + file_name):
         print get_thread_id + "Sent: ERROR: NO SUCH FILE"
-        c.send("ERROR: NO SUCH FILE")
+        c.send("ERROR: NO SUCH FILE\n")
     else:
+        file_id,num_block = disk.delete(".storage/" + file_name)
         os.remove(file_name)
-        print get_thread_id() + "Deleted " + file_name + " file 'A' (deallocated 7 blocks)"
-        c.send("Deleted " + file_name + " file 'A' (deallocated 7 blocks)")
+        print get_thread_id() + "Deleted " + file_name + " file '"+file_id+"' (deallocated "+str(num_block) +" blocks)"
+        print get_thread_id() + "Simulated Clustered Disk Space Allocation:"
+        print disk
+        print get_thread_id() + "Sent: ACK"
+        c.send("ACK\n")
     return
 
 
@@ -69,35 +75,32 @@ def store(line, c,disk):
     phrase_list = line.split()
     if len(phrase_list) < 3:
         print get_thread_id() + "ERROR: WRONG FORMAT"
-        c.send("ERROR: WRONG FORMAT")
+        c.send("ERROR: WRONG FORMAT\n")
         return
     file_name = phrase_list[1]
-    file_size = int(phrase_list[2])      
-
-    
+    file_size = int(phrase_list[2])
     file_id, block, cluster = disk.store(file_name,file_size)
     if file_id is None:
         print get_thread_id() + "ERROR: INSUFFICIENT DISK SPACE"
-        c.send("ERROR: ERROR: INSUFFICIENT DISK SPACE")
+        c.send("ERROR: ERROR: INSUFFICIENT DISK SPACE\n")
         return
-    
+
     if os.path.exists(".storage/" + file_name):
-        c.send("ERROR: FILE EXISTS")
+        c.send("ERROR: FILE EXISTS\n")
         print get_thread_id() + "ERROR: FILE EXISTS"
         return
     f = open(".storage/" + file_name, 'w')
-    c.send("ACK")
-    print get_thread_id() +"Sent: ACK"
     size_count = 0
     while (size_count<file_size):
         to_add = c.recv(1024)
         size_count += len(to_add)
         f.write(to_add)
- 
-
-
     f.close()
-    # c.send("ACK");
+    print "%s Stored file '%s' (%s bytes; %d blocks; %d cluster)"%(get_thread_id(),file_size,file_id,block,cluster)
+    print get_thread_id() + "Simulated Clustered Disk Space Allocation:"
+    print disk
+    c.send("ACK\n")
+    print get_thread_id() +"Sent: ACK"
     return
 
 
@@ -111,11 +114,11 @@ def session(c, addr,disk):
             if line.startswith("STORE "):
                 store(line,c,disk)
             elif line.startswith("DIR"):
-                dir_(c,disk)
+                dir_(c)
             elif line.startswith("READ "):
-                read(line,c)
+                read(line,c,disk)
             elif line.startswith("DEL "):
-                delete(line,c)
+                delete(line,c,disk)
             else:
                 print "ERROR: UNDEFINED COMMAND"
                 break
@@ -142,7 +145,7 @@ def main():
         try:
             c, addr = s.accept()  # Establish connection with client.
             print "Received incoming connection from " + str(addr)
-            c.send('Server:Connected successful')
+            c.send('Server:Connected successful\n')
             # new thread here
             thread = threading.Thread(target=session, args=(c, addr,d))
             thread.start()
