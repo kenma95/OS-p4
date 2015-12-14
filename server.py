@@ -61,8 +61,8 @@ def delete(line,c,disk):
         print get_thread_id + "Sent: ERROR: NO SUCH FILE"
         c.send("ERROR: NO SUCH FILE\n")
     else:
-        file_id,num_block = disk.delete(".storage/" + file_name)
-        os.remove(file_name)
+        file_id,num_block = disk.delete(file_name)
+        os.remove(".storage/" + file_name)
         print get_thread_id() + "Deleted " + file_name + " file '"+file_id+"' (deallocated "+str(num_block) +" blocks)"
         print get_thread_id() + "Simulated Clustered Disk Space Allocation:"
         print disk
@@ -90,11 +90,12 @@ def store(line, c,disk):
         print get_thread_id() + "ERROR: FILE EXISTS"
         return
     f = open(".storage/" + file_name, 'w')
-    size_count = 0
-    while (size_count<file_size):
-        to_add = c.recv(1024)
-        size_count += len(to_add)
-        f.write(to_add)
+    to_add = c.recv(file_size)
+    size_count = len(to_add)
+    if not size_count == file_size:
+        print get_thread_id() + "ERROR: FILE SIZE NOT MATCH"
+        c.send("ERROR: FILE SIZE NOT MATCH")
+    f.write(str(to_add))
     f.close()
     print "%s Stored file '%s' (%s bytes; %d blocks; %d cluster)"%(get_thread_id(),file_size,file_id,block,cluster)
     print get_thread_id() + "Simulated Clustered Disk Space Allocation:"
