@@ -60,11 +60,22 @@ class Disk(object):
                 deleted += 1
         return fid, deleted
 
-    def read(self, file_name):
+    def read(self, file_name, offset, read_bytes):
         fid = self.files[file_name]
         read = 0
+        offset_ = offset
+        remaining_ = read_bytes
         for i in range(self.n_blocks):
             if self.map[i] == fid:
-                read += 1
+                if offset_ > 0:
+                    offset_ -= self.blocksize
+                    if offset_ < 0:
+                        read += 1
+                        remaining_ += offset_
+                elif remaining_ > 0:
+                    remaining_ -= self.blocksize
+                    read += 1
+                else:
+                    break
         return fid, read
 
