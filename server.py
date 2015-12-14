@@ -2,8 +2,7 @@ import socket
 import threading
 import os
 import shutil
-
-
+import disk
 def folder_init():
     if not os.path.exists(".storage"):
         os.makedirs(".storage")
@@ -14,7 +13,7 @@ def folder_init():
 def get_thread_id():
     return "[thread" + str(threading.current_thread().ident) + "] "
 
-def read(line,c):
+def read(line,c,disk):
     phrase_list = line.split()
     if len(phrase_list) < 4:
         print get_thread_id() + "Sent: ERROR: WRONG FORMAT"
@@ -37,10 +36,20 @@ def read(line,c):
         print get_thread_id() + "Sent: "+to_read
     #simulation
 
+def dir_(c):
+    file_list = os.listdir(".storage")
+    to_return = (str(len(file_list)))
+    print get_thread_id() + "Sent " + str(len(file_list)) +"\n"
+    if file_list:
+        file_list.sort()
+        for item in file_list:
+            to_return += (item) +"\n"
+            print item
+    c.send(to_return)
 
 
 
-def delete(line,c):
+def delete(line,c,disk):
     phrase_list = line.split()
     if len(phrase_list) < 2:
         print get_thread_id() + "ERROR: WRONG FORMAT"
@@ -56,37 +65,35 @@ def delete(line,c):
     return
 
 
-def store(line, c):
+def store(line, c,disk):
     phrase_list = line.split()
     if len(phrase_list) < 3:
         print get_thread_id() + "ERROR: WRONG FORMAT"
         c.send("ERROR: WRONG FORMAT")
         return
     file_name = phrase_list[1]
-    file_size = int(phrase_list[2])
-    # TODO: cluster sim
-    #
-    '''
-    file_id = disk.store(file_name,file_size)
-    print get_thread_id() + "Simulated Clustered Disk Space Allocation:"
-    print disk
-    '''
+    file_size = int(phrase_list[2])      
+
+    
+    file_id, block, cluster = disk.store(file_name,file_size)
+    if file_id is None:
+        print get_thread_id() + "ERROR: INSUFFICIENT DISK SPACE"
+        c.send("ERROR: ERROR: INSUFFICIENT DISK SPACE")
+        return
+    
     if os.path.exists(".storage/" + file_name):
         c.send("ERROR: FILE EXISTS")
         print get_thread_id() + "ERROR: FILE EXISTS"
         return
     f = open(".storage/" + file_name, 'w')
-    size_count = 0
-    while (size_count<file_size):
-        c.send(" ")
-        to_add = c.recv(1024)
-        size_count += len(to_add)
-        if (size_count < file_size):
-            to_add+="\n"
-            size_count += 1
-        f.write(to_add)
     c.send("ACK")
     print get_thread_id() +"Sent: ACK"
+    size_count = 0
+    while (size_count<file_size):
+        to_add = c.recv(1024)
+        size_count += len(to_add)
+        f.write(to_add)
+ 
 
 
     f.close()
@@ -94,7 +101,7 @@ def store(line, c):
     return
 
 
-def session(c, addr):
+def session(c, addr,disk):
     try:
         while 1:
             line = c.recv(1024)
@@ -102,9 +109,9 @@ def session(c, addr):
                 break
             print get_thread_id() + " Rcvd: " + line
             if line.startswith("STORE "):
-                store(line,c)
+                store(line,c,disk)
             elif line.startswith("DIR"):
-                dir_(c)
+                dir_(c,disk)
             elif line.startswith("READ "):
                 read(line,c)
             elif line.startswith("DEL "):
@@ -122,26 +129,13 @@ def session(c, addr):
         return
 
 
-def dir_(c):
-    file_list = os.listdir(".storage")
-    to_return = (str(len(file_list)))
-    print get_thread_id() + "Sent " + str(len(file_list))
-    if file_list:
-        file_list.sort()
-        for item in file_list:
-            to_return += (item) +"\n"
-            print item
-    c.send(to_return)
-
-
 def main():
     folder_init()
-    #d = Disk(128, 4096)
+    d = disk.Disk(128, 4096)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     port = 8765
     s.bind(("", port))  # Bind to the port
     print "Listening on port " + str(port)
-
     s.listen(5)
 
     while True:
@@ -150,10 +144,10 @@ def main():
             print "Received incoming connection from " + str(addr)
             c.send('Server:Connected successful')
             # new thread here
-            thread = threading.Thread(target=session, args=(c, addr))
+            thread = threading.Thread(target=session, args=(c, addr,d))
             thread.start()
         except KeyboardInterrupt:
-            return
+            exit()
 
 
 if __name__ == '__main__':

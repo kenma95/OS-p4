@@ -12,6 +12,8 @@ print s.recv(1024)
 f = open ("cmmd.txt",'r')
 for line in f:
 	s.send(line)
-	re = s.recv(1024)
-	print re
+	if  line.startswith("STORE") or  line.startswith("DIR") or \
+	line.startswith("READ") or  line.startswith("DEL"):
+		re = s.recv(1024)
+		print re
 s.close                     # Close the socket when done

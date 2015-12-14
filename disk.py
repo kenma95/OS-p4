@@ -10,10 +10,7 @@ class Disk(object):
 
         self.map = []
         for i in range(self.n_blocks):
-            if 40 < i < 80:
-                self.map.append('X')
-            else:
-                self.map.append('.')
+            self.map.append('.')
 
         self.files = {}
 
@@ -71,11 +68,3 @@ class Disk(object):
                 read += 1
         return fid, read
 
-d = Disk(128, 4096)
-print d
-d.store('abc', 30 * 4096)
-print d
-d.store('xyx', 50 * 4096)
-print d
-d.delete('xyx')
-print d
