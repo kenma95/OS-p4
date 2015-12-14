@@ -21,18 +21,18 @@ def read(line,c):
         c.send("ERROR: WRONG FORMAT")
     file_name = phrase_list[1]
     file_offset = int(phrase_list[2])
-    file_len = int(phrase_listp[3])
+    file_len = int(phrase_list[3])
     if not os.path.exists(".storage/" + file_name):
         print get_thread_id + "Sent: ERROR: NO SUCH FILE"
         c.send("ERROR: NO SUCH FILE")
     else:
         f = open(".storage/" + file_name, 'r')
-        file_size = os.path.getsize(file_name)
+        file_size = os.path.getsize(".storage/" + file_name)
         if file_size < (file_offset + file_len):
-            print get_thread_id() + "ERROR: INVALID BYTE RANGE" 
+            print get_thread_id() + "ERROR: INVALID BYTE RANGE"
         f.seek(file_offset,0)
         to_read = f.read(file_len)
-        to_read = "ACK str(file_len)\n" + to_read
+        to_read = "ACK" + str(file_len)+"\n" + to_read
         c.send(to_read)
         print get_thread_id() + "Sent: "+to_read
     #simulation
@@ -105,6 +105,10 @@ def session(c, addr):
                 store(line,c)
             elif line.startswith("DIR"):
                 dir_(c)
+            elif line.startswith("READ "):
+                read(line,c)
+            elif line.startswith("DEL "):
+                delete(line,c)
             else:
                 print "ERROR: UNDEFINED COMMAND"
                 break
@@ -125,14 +129,14 @@ def dir_(c):
     if file_list:
         file_list.sort()
         for item in file_list:
-            to_return += (item)
+            to_return += (item) +"\n"
             print item
     c.send(to_return)
 
 
 def main():
     folder_init()
-    d = Disk(128, 4096)
+    #d = Disk(128, 4096)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     port = 8765
     s.bind(("", port))  # Bind to the port
