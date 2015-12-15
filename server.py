@@ -177,7 +177,7 @@ def main():
             thread = threading.Thread(target=session, args=(c, addr, d))
             thread.start()
         except KeyboardInterrupt:
-            exit()
+            s.close()
 
 
 if __name__ == '__main__':
