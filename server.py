@@ -22,17 +22,20 @@ def read(line, c, disk):
     if len(phrase_list) < 4:
         print get_thread_id() + "Sent: ERROR: WRONG FORMAT"
         c.send("ERROR: WRONG FORMAT\n")
+        return
     file_name = phrase_list[1]
     file_offset = int(phrase_list[2])
     file_len = int(phrase_list[3])
     if not os.path.exists(".storage/" + file_name):
         print get_thread_id() + "Sent: ERROR: NO SUCH FILE"
         c.send("ERROR: NO SUCH FILE\n")
+        return
     else:
         f = open(".storage/" + file_name, 'r')
         file_size = os.path.getsize(".storage/" + file_name)
         if file_size < (file_offset + file_len):
             print get_thread_id() + "ERROR: INVALID BYTE RANGE"
+            c.send("ERROR: INVALID BYTE RANGE\n")
             return
         f.seek(file_offset, 0)
         to_read = f.read(file_len)
@@ -61,10 +64,12 @@ def delete(line, c, disk):
     if len(phrase_list) < 2:
         print get_thread_id() + "ERROR: WRONG FORMAT"
         c.send("ERROR: WRONG FORMAT\n")
+        return
     file_name = phrase_list[1]
     if not os.path.exists(".storage/" + file_name):
         print get_thread_id() + "Sent: ERROR: NO SUCH FILE"
         c.send("ERROR: NO SUCH FILE\n")
+        return
     else:
         file_id, num_block = disk.delete(file_name)
         os.remove(".storage/" + file_name)
@@ -85,6 +90,12 @@ def store(line, content, c, disk):
         return
     file_name = phrase_list[1]
     file_size = int(phrase_list[2])
+    size_count = len(content)
+    while size_count < file_size:
+        to_add = c.recv(file_size)
+        size_count += len(to_add)
+        content += to_add
+
     file_id, block, cluster = disk.store(file_name, file_size)
     if file_id is None:
         print get_thread_id() + "ERROR: INSUFFICIENT DISK SPACE"
@@ -95,17 +106,14 @@ def store(line, content, c, disk):
         c.send("ERROR: FILE EXISTS\n")
         print get_thread_id() + "ERROR: FILE EXISTS"
         return
-    f = open(".storage/" + file_name, 'w')
-    size_count = len(content)
-    f.write(content)
-    while size_count < file_size:
-        to_add = c.recv(file_size)
-        size_count += len(to_add)
-        f.write(str(to_add))
+
     if not size_count == file_size:
         print get_thread_id() + "ERROR: FILE SIZE NOT MATCH"
         c.send("ERROR: FILE SIZE NOT MATCH\n")
+        return
 
+    f = open(".storage/" + file_name, 'w')
+    f.write(content)
     f.close()
     print get_thread_id() + "Stored file '%s' (%d bytes; %d blocks; %d clusters)" % (file_id, file_size, block, cluster)
     print get_thread_id() + "Simulated Clustered Disk Space Allocation:"
@@ -126,7 +134,7 @@ def session(c, addr, disk):
             rmn = ''
             if len(msgs) > 1:
                 rmn = msgs[1]
-            print get_thread_id() + "Rcvd: " + str(line).rstrip()
+            print get_thread_id() + "Rcvd: " + str(line)
             if line.startswith("STORE "):
                 store(line, rmn, c, disk)
             elif line.startswith("DIR"):
@@ -136,8 +144,8 @@ def session(c, addr, disk):
             elif line.startswith("DELETE "):
                 delete(line, c, disk)
             else:
-                print "ERROR: UNDEFINED COMMAND"
-                break
+                print get_thread_id() + "ERROR: UNDEFINED COMMAND"
+                c.send("ERROR: UNDEFINED COMMAND\n")
 
         # Disconnect if no more byte recv
         c.close()
