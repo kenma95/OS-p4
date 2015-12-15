@@ -76,7 +76,7 @@ def delete(line, c, disk):
     return
 
 
-def store(line, c, disk):
+def store(line, content, c, disk):
     phrase_list = line.split()
     if len(phrase_list) < 3:
         print get_thread_id() + "ERROR: WRONG FORMAT"
@@ -95,13 +95,14 @@ def store(line, c, disk):
         print get_thread_id() + "ERROR: FILE EXISTS"
         return
     f = open(".storage/" + file_name, 'w')
-    size_count = 0
+    size_count = len(content)
+    f.write(content)
     while size_count < file_size:
         to_add = c.recv(file_size)
         size_count += len(to_add)
         f.write(str(to_add))
     if not size_count == file_size:
-        print get_thread_id() + "ERROR: FILE SIZE NOT MATCH", size_count, file_size
+        print get_thread_id() + "ERROR: FILE SIZE NOT MATCH"
         c.send("ERROR: FILE SIZE NOT MATCH\n")
 
     f.close()
@@ -119,9 +120,14 @@ def session(c, addr, disk):
             line = c.recv(1024)
             if len(line) == 0:  # nothing receive, connection over
                 break
+            msgs = str(line).split('\n', 1)
+            line = msgs[0]
+            rmn = ''
+            if len(msgs) > 1:
+                rmn = msgs[1]
             print get_thread_id() + "Rcvd: " + str(line).rstrip()
             if line.startswith("STORE "):
-                store(line, c, disk)
+                store(line, rmn, c, disk)
             elif line.startswith("DIR"):
                 dir_(c)
             elif line.startswith("READ "):
