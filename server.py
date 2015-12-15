@@ -95,12 +95,15 @@ def store(line, c, disk):
         print get_thread_id() + "ERROR: FILE EXISTS"
         return
     f = open(".storage/" + file_name, 'w')
-    to_add = c.recv(file_size)
-    size_count = len(to_add)
+    size_count = 0
+    while size_count < file_size:
+        to_add = c.recv(file_size)
+        size_count += len(to_add)
+        f.write(str(to_add))
     if not size_count == file_size:
-        print get_thread_id() + "ERROR: FILE SIZE NOT MATCH"
+        print get_thread_id() + "ERROR: FILE SIZE NOT MATCH", size_count, file_size
         c.send("ERROR: FILE SIZE NOT MATCH\n")
-    f.write(str(to_add))
+
     f.close()
     print get_thread_id() + "Stored file '%s' (%d bytes; %d blocks; %d clusters)" % (file_id, file_size, block, cluster)
     print get_thread_id() + "Simulated Clustered Disk Space Allocation:"
