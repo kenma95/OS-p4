@@ -33,6 +33,7 @@ def read(line, c, disk):
         file_size = os.path.getsize(".storage/" + file_name)
         if file_size < (file_offset + file_len):
             print get_thread_id() + "ERROR: INVALID BYTE RANGE"
+            return
         f.seek(file_offset, 0)
         to_read = f.read(file_len)
         to_read = "ACK\n" + str(file_len) + "\n" + to_read + "\n"
