@@ -49,6 +49,8 @@ class Disk(object):
                 self.map[i] = fid
 
         self.files[file_name] = fid
+        if needed == 0:
+            clusters = 0
         return fid, needed, clusters
 
     def delete(self, file_name):
