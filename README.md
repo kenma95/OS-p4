@@ -1,9 +1,9 @@
-# OS-p4
-<!-- language: lang-none -->
+# CSCI 4210 Project 4 Fall 2015
 
-      _____       _     _          _               _     _ _      _____ ____  
-     / ____|     | |   | |        | |             (_)   | | |    / ____|  _ \ 
-    | |  __  ___ | | __| |___  ___| |__  _ __ ___  _  __| | |_  | (___ | |_) |
-    | | |_ |/ _ \| |/ _` / __|/ __| '_ \| '_ ` _ \| |/ _` | __|  \___ \|  _ < 
-    | |__| | (_) | | (_| \__ \ (__| | | | | | | | | | (_| | |_   ____) | |_) |
-     \_____|\___/|_|\__,_|___/\___|_| |_|_| |_| |_|_|\__,_|\__| |_____/|____/ 
+###Usage:
+The code is written in Python 2.7.x. Run *server.py* in server terminal. An Ubuntu server is recommended because some features such as binary file store/read is not supported in Windows environment.
+
+The preferred test way is using the _netcat_ command in Linux terminal. A default **8765** port is set in *server.py*. The *client.py* code is not fully compatible with the code because the recv() command will block the communication. 
+
+###Requirement page
+http://www.cs.rpi.edu/~goldsd/docs/fall2015-csci4210/p4.pdf
